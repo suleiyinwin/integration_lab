@@ -10,7 +10,6 @@ import Cookies from 'js-cookie';
 import Axios from'../../share/AxiosInstance';
 const Home = () => {
   const { user, setStatus } = useContext(GlobalContext);
-
   const [openCreate, setOpenCreate] = useState(false);
   const [openEdit, setOpenEdit] = useState(false);
   const [openDetail, setOpenDetail] = useState(false);
@@ -18,16 +17,7 @@ const Home = () => {
   const [notes, setNotes] = useState([]);
 
   useEffect(() => {
-    // TODO: Implement get notes by user's token
-    // 1. check if user is logged in
-    const userToken = Cookies.get('UserToken');
-    if (userToken !== undefined && userToken !== 'undefined') {
-      // 2. call API to get notes
-      Axios.get('/notes', { headers: { Authorization: `Bearer ${userToken}` } }).then((res) => {
-        // 3. set notes to state
-        setNotes(res.data.data);
-      });
-    }
+    
   }, [user]);
 
   // Note Create Modal
@@ -94,7 +84,7 @@ const Home = () => {
         setStatus({severity:'error',msg:error.response.data.error});
       }else{
         setStatus({severity:'error',msg:error.message});
-      }
+      } 
     }
   };
 

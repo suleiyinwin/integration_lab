@@ -1,19 +1,62 @@
 import { Box, Button, Card, Modal, TextField } from '@mui/material';
-import React, { useState } from 'react';
+import React, { useState, useEffect, useContext } from 'react';
 import { useKeyDown } from '../../../hooks/useKeyDown';
 import CommentCard from './components/CommentCard';
+import Axios from '../../AxiosInstance';
+import Cookies from 'js-cookie';
+import GlobalContext from '../../../share/Context/GlobalContext';
 
 const CommentModal = ({ open = false, handleClose = () => {} }) => {
   const [textField, setTextField] = useState('');
   const [comments, setComments] = useState([]);
+  const {setStatus} = useContext(GlobalContext);
+
+  const precisionRemove = (id) => {
+    setComments(comments.filter(c => c.id != id));
+  }
+
+  const precisionUpdate = (id, message) => {
+    setComments(comments.map(c => c.id === id ? {...c, msg: message} : c));
+  }
+
+  useEffect(() => {
+    const userToken = Cookies.get('UserToken');
+
+    if (userToken == null || userToken == 'undefined') return;
+
+    Axios.get('/comment', { headers: { Authorization: `Bearer ${userToken}` } })
+      .then(res => {
+        const transformed = res.data.data.map(x => {
+          const msg = x.text;
+          return {...x, msg };
+        });
+
+        setComments(transformed);
+      })
+  }, []);
+
 
   useKeyDown(() => {
     handleAddComment();
   }, ['Enter']);
 
-  const handleAddComment = () => {
+  const handleAddComment = async () => {
     // TODO implement logic
-    setComments([...comments, { id: Math.random(), msg: textField }]);
+    const userToken = Cookies.get('UserToken');
+
+    if (userToken == null || userToken == 'undefined') return;
+
+    const response = await Axios.post('/comment', {
+      text: textField,
+    }, {
+      headers: {Authorization: `Bearer ${userToken}`}
+    });
+
+    if (response.data.success) {
+      setComments([...comments, { id: response.data.data.id, msg: textField }]);
+      setStatus({msg: textField, severity: 'info'});
+      setTextField('');
+    }
   };
 
   return (
@@ -60,7 +103,7 @@ const CommentModal = ({ open = false, handleClose = () => {} }) => {
           }}
         >
           {comments.map((comment) => (
-            <CommentCard comment={comment} key={comment.id} />
+            <CommentCard comment={comment} key={comment.id} removeComment={precisionRemove} updateComment={precisionUpdate} />
           ))}
         </Box>
       </Card>

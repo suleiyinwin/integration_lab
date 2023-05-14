@@ -1,23 +1,52 @@
 import { Button, Card, TextField, Typography } from '@mui/material';
-import React, { useCallback, useState } from 'react';
+import React, { useCallback, useContext, useState } from 'react';
+import Cookies from 'js-cookie';
+import Axios from '../../../AxiosInstance';
+import GlobalContext from '../../../Context/GlobalContext';
 
-const CommentCard = ({ comment = { id: -1, msg: '' } }) => {
+const CommentCard = ({ comment = { id: -1, msg: '' }, removeComment, updateComment }) => {
   const [isConfirm, setIsConfirm] = useState(false);
   const [functionMode, setFunctionMode] = useState('update');
   const [msg, setMsg] = useState(comment.msg);
+  const [id, setId] = useState(comment.id);
+  const {setStatus} = useContext(GlobalContext);
 
   const submit = useCallback(() => {
-    if (functionMode === 'update') {
-      // TODO implement update logic
-      console.log('update');
-    } else if (functionMode === 'delete') {
-      // TODO implement delete logic
-      console.log('delete');
-    } else {
-      // TODO setStatus (snackbar) to error
-      console.log('error');
+    const userToken = Cookies.get('UserToken');
+    if (userToken !== undefined && userToken !== 'undefined') {
+      if (functionMode === 'update') {
+        Axios
+          .patch('/comment', {
+            text: msg,
+            commentId: id,
+          }, {headers: {Authorization: `Bearer ${userToken}`}})
+          .then(res => {
+            if (res.status === 200) {
+              setStatus({
+                msg: res.data.data.text,
+                severity: 'info',
+              });
+              updateComment(id, msg);
+            }
+          });
+      } else if (functionMode === 'delete') {
+        Axios
+          .delete('/comment', {headers: { Authorization: `Bearer ${userToken}`}, data: {commentId: id}})
+          .then(res => {
+            if (res.status === 200) {
+              removeComment(id);
+            }
+          });
+      } else {
+        // TODO setStatus (snackbar) to error
+        setStatus({
+          msg: `Error! Function Mode ${functionMode} is not recognized!`,
+          severity: 'error',
+        });
+      }
+      setIsConfirm(false);
     }
-  }, [functionMode]);
+  }, [functionMode, msg]);
 
   const changeMode = (mode) => {
     setFunctionMode(mode);
